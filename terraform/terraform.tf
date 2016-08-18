@@ -1,6 +1,6 @@
 // ----------------------------------------
-//     Infrastructure for a Swarm 
-//            Docker cluster
+//     Infrastructure for a site  
+//        reliable wordpress       
 // ----------------------------------------
 
 // ------------ VARIABLES -----------------
