@@ -20,6 +20,8 @@ vpc-cidr            = "10.0.0.0/16"
 
 igw-name            = "main"
 
+s3-names            = "media,code"
+
 az-pub              = "us-east-1a,us-east-1b"
 cidr-pub            = "10.0.0.0/24,10.0.10.0/24"
 name-pub-subnet     = "pubsubnet"

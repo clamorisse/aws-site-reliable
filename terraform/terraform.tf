@@ -89,6 +89,80 @@ resource "aws_security_group" "web_server_sg" {
  }
 }
 
+resource "aws_security_group" "db_server_sg" {
+  name        = "db_server_sg"
+  description = "Allows MySQL DB access through web_server_sg"
+  vpc_id = "${module.vpc.vpc_id}" 
+
+# MySQL
+
+  ingress {
+    from_port = 3306
+    to_port   = 3306
+    protocol  = "tcp"
+    security_groups = ["${aws_security_group.web_server_sg.id}"]
+  }
+
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+ }
+}
+
+# CREATE BUCKETS
+
+resource "aws_s3_bucket" "wp-media" {
+  bucket     = "${var.app-name}-media-${var.env}"
+  acl        = "private"
+  force_destroy = "true"
+  policy = <<EOF
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid": "AddPerm",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "S3:GetObject",
+      "Resource": "arn:aws:s3:::${var.app-name}-media-${var.env}/*"
+    }
+  ]
+}
+EOF
+
+  tags {
+    Name = "${var.app-name}-bucket-${var.env}"
+    Environment = "${var.env}"
+  }
+}
+
+resource "aws_s3_bucket" "wp-code" {
+  bucket     = "${var.app-name}-code-${var.env}"
+  acl        = "private"
+  force_destroy = "true"
+  policy = <<EOF
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid": "AddPerm",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "S3:GetObject",
+      "Resource": "arn:aws:s3:::${var.app-name}-code-${var.env}/*"
+    }
+  ]
+}
+EOF
+
+  tags {
+    Name = "${var.app-name}-bucket-${var.env}"
+    Environment = "${var.env}"
+  }
+}
+
 # CREATE PUBLIC SUBNETS
 
 module "public_subnet" {
