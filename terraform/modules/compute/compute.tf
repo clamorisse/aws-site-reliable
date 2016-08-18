@@ -20,7 +20,7 @@ resource "aws_instance" "ec2"{
   instance_type               = "${var.instance_type}"
   associate_public_ip_address = "${var.public_ip}" 
   key_name                    = "${var.key_name}"
-  subnet_id                   = "${var.subnet_id}"
+  subnet_id                   = "${element(split(",", var.subnet_id), count.index)}"
 #  user_data                   = "${template_file.webserver_userdata.rendered}"
   vpc_security_group_ids      = ["${var.instance_sg_ids}"]
 
@@ -29,10 +29,10 @@ resource "aws_instance" "ec2"{
   }
 }
 
-output "instance-id"         { value = "${aws_instance.ec2.id}" }
-output "public-ip"           { value = "${aws_instance.ec2.public_ip}" }
-output "private-ip"          { value = "${aws_instance.ec2.private_ip}" }
-output "availability-zone"   { value = "${aws_instance.ec2.availability_zone}" }
+output "instance-id"         { value = "${join(",", aws_instance.ec2.*.id)}" }
+output "public-ip"           { value = "${join(",", aws_instance.ec2.*.public_ip)}" }
+output "private-ip"          { value = "${join(",", aws_instance.ec2.*.private_ip)}" }
+output "availability-zone"   { value = "${join(",", aws_instance.ec2.*.availability_zone)}" }
 
 
 

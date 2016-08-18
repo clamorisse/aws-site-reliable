@@ -17,11 +17,12 @@ resource "aws_internet_gateway" "igw" {
 
 resource "aws_subnet" "public" {
   vpc_id                  =  "${var.vpc_id}"
-  cidr_block              =  "${var.cidr_block}"
-  availability_zone       =  "${var.availability_zone}"
+  cidr_block              =  "${element(split(",", var.cidr_block), count.index)}"
+  availability_zone       =  "${element(split(",", var.availability_zone), count.index)}"
+  count                   = "${length(split(",", var.cidr_block))}"
 
   tags {
-    Name = "${var.name}-subnet"
+    Name = "${var.name}-${element(split(",", var.availability_zone), count.index)}"
   }
 
   lifecycle { create_before_destroy = true }
@@ -40,10 +41,11 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table_association" "public" {
-  subnet_id      = "${aws_subnet.public.id}"
+  count          = "${length(split(",", var.cidr_block))}" 
+  subnet_id      = "${element(aws_subnet.public.*.id, count.index)}"
   route_table_id = "${aws_route_table.public.id}"
 }
 
-output "subnet_ids" { value = "${aws_subnet.public.id}" }
+output "subnet_ids" { value = "${join(",", aws_subnet.public.*.id)}" }
 
 

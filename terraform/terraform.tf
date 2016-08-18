@@ -9,10 +9,8 @@ variable "aws-region"          { }
 
 variable "app-name"            { }
 
-variable "ec2-m"               { }
-variable "number-m"            { }
-variable "ec2-w"               { }
-variable "number-w"            { }
+variable "ec2"                 { }
+variable "number"              { }
 variable "ec2-type"            { }
 variable "key-name"            { default = "server-key" }
 variable "amazon-linux-ami"    { default = "ami-6869aa05"}
@@ -26,7 +24,7 @@ variable "igw-name"            { }
 
 variable "az-pub"              { }
 variable "cidr-pub"            { }
-variable "public-subnet"       { }
+variable "name-pub-subnet"     { }
 
 variable "env"                 { }
 
@@ -40,7 +38,7 @@ variable "env"                 { }
   profile = "default"
 }
 
-# Create VPC
+# CREATE VPC
 
 module "vpc" {
   source = "modules/network/vpc"
@@ -49,14 +47,7 @@ module "vpc" {
   cidr   = "${var.vpc-cidr}" 
 }
 
-module "public_subnet" {
-  source = "modules/network/subnet" 
-
-  vpc_id            = "${module.vpc.vpc_id}"
-  cidr_block        = "${var.cidr-pub}"
-  availability_zone = "${var.az-pub}"
-  name              = "${var.app-name}-${var.public-subnet}"
-}
+# CREATE SG HTTP, HTTPS, SSH
 
 resource "aws_security_group" "web_server_sg" {
   name        = "web_server_sg"
@@ -98,12 +89,25 @@ resource "aws_security_group" "web_server_sg" {
  }
 }
 
+# CREATE PUBLIC SUBNETS
+
+module "public_subnet" {
+  source = "modules/network/subnet" 
+
+  vpc_id            = "${module.vpc.vpc_id}"
+  cidr_block        = "${var.cidr-pub}"
+  availability_zone = "${var.az-pub}"
+  name              = "${var.app-name}-${var.name-pub-subnet}"
+}
+
+# CREATE PUBLIC INSTANCES
+
 module "instance" "manager" {
   source = "modules/compute"
 
-  name                        = "${var.ec2-m}"
+  name                        = "${var.ec2}"
   ami                         = "${var.amazon-linux-ami}"
-  number                      = "${var.number-m}"
+  number                      = "${var.number}"
   instance_type               = "t2.micro"
   public_ip                   = true
   key_name                    = "${var.key-name}"
@@ -111,3 +115,5 @@ module "instance" "manager" {
 #  user_data                   = "${template_file.webserver_userdata.rendered}"
   instance_sg_ids             = "${aws_security_group.web_server_sg.id}"
 }
+
+
