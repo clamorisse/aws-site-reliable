@@ -176,7 +176,45 @@ module "public_subnet" {
 
 # CREATE PUBLIC INSTANCES
 
-module "instance" "manager" {
+# Creates S3 Role for instance
+
+# Role to acquire STS for instance
+
+resource "aws_iam_role" "wp_iam_role" {
+  name = "wp_iam_role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+# Attach S3 administrator permissions to role
+
+resource "aws_iam_policy_attachment" "s3-access" {
+  name       = "s3_policy_attach"
+  roles      = ["${aws_iam_role.wp_iam_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+# Reference role to instance profile
+
+resource "aws_iam_instance_profile" "wp_instance_profile" {
+  name  = "${var.app-name}-instance-profile"
+  roles = ["${aws_iam_role.wp_iam_role.name}"]
+}
+
+module "instance" "wp-instance" {
   source = "modules/compute"
 
   name                        = "${var.ec2}"
@@ -188,6 +226,7 @@ module "instance" "manager" {
   subnet_id                   = "${module.public_subnet.subnet_ids}"
 #  user_data                   = "${template_file.webserver_userdata.rendered}"
   instance_sg_ids             = "${aws_security_group.web_server_sg.id}"
+  instance_profile            = "${aws_iam_instance_profile.wp_instance_profile.id}"
 }
 
 
