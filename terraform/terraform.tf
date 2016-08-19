@@ -178,6 +178,8 @@ module "public_subnet" {
 
 # Creates S3 Role for instance
 
+# Role to acquire STS for instance
+
 resource "aws_iam_role" "wp_iam_role" {
   name = "wp_iam_role"
   assume_role_policy = <<EOF
@@ -197,35 +199,19 @@ resource "aws_iam_role" "wp_iam_role" {
 EOF
 }
 
-resource "aws_iam_instance_profile" "wp_instance_profile" {
-  name  = "${var.app-name}-instance-profile"
-  roles = ["wp_iam_role"]
+# Attach S3 administrator permissions to role
+
+resource "aws_iam_policy_attachment" "s3-access" {
+  name       = "s3_policy_attach"
+  roles      = ["${aws_iam_role.wp_iam_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-resource "aws_iam_role_policy" "wp_iam_role_policy" {
-  name = "${var.app-name}-iam-role-police"
-  role = "${aws_iam_role.wp_iam_role.id}"
-  policy =<<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:ListBucket"],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
+# Reference role to instance profile
+
+resource "aws_iam_instance_profile" "wp_instance_profile" {
+  name  = "${var.app-name}-instance-profile"
+  roles = ["${aws_iam_role.wp_iam_role.name}"]
 }
 
 module "instance" "wp-instance" {
@@ -240,7 +226,7 @@ module "instance" "wp-instance" {
   subnet_id                   = "${module.public_subnet.subnet_ids}"
 #  user_data                   = "${template_file.webserver_userdata.rendered}"
   instance_sg_ids             = "${aws_security_group.web_server_sg.id}"
-  iam_instance_profile        = "${aws_iam_instance_profile.wp_instance_profile.id}"
+  instance_profile            = "${aws_iam_instance_profile.wp_instance_profile.id}"
 }
 
 
