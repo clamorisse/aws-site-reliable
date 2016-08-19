@@ -176,7 +176,59 @@ module "public_subnet" {
 
 # CREATE PUBLIC INSTANCES
 
-module "instance" "manager" {
+# Creates S3 Role for instance
+
+resource "aws_iam_role" "wp_iam_role" {
+  name = "wp_iam_role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "wp_instance_profile" {
+  name  = "${var.app-name}-instance-profile"
+  roles = ["wp_iam_role"]
+}
+
+resource "aws_iam_role_policy" "wp_iam_role_policy" {
+  name = "${var.app-name}-iam-role-police"
+  role = "${aws_iam_role.wp_iam_role.id}"
+  policy =<<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+module "instance" "wp-instance" {
   source = "modules/compute"
 
   name                        = "${var.ec2}"
@@ -188,6 +240,7 @@ module "instance" "manager" {
   subnet_id                   = "${module.public_subnet.subnet_ids}"
 #  user_data                   = "${template_file.webserver_userdata.rendered}"
   instance_sg_ids             = "${aws_security_group.web_server_sg.id}"
+  iam_instance_profile        = "${aws_iam_instance_profile.wp_instance_profile.id}"
 }
 
 
